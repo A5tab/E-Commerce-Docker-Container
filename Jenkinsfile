@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'ubuntu3' }  // ✅ use label of your Jenkins node or just "any"
+    agent { label 'ubuntu3' }  // use label of your Jenkins node or just "any"
 
     environment {
         COMPOSE_PROJECT_NAME = "mern_ci_app"
@@ -34,9 +34,9 @@ pipeline {
             steps {
                 echo 'Cleaning up old containers...'
                 sh '''
-                    docker ps -aq --filter "name=mern-" | xargs -r docker rm -f || true
-                    docker compose down --volumes --remove-orphans || true
-                    docker system prune -af || true
+                    sudo docker ps -aq --filter "name=mern-" | xargs -r docker rm -f || true
+                    sudo docker compose down --volumes --remove-orphans || true
+                    sudo docker system prune -af || true
                 '''
             }
         }
@@ -45,8 +45,8 @@ pipeline {
             steps {
                 echo 'Building and launching MERN containers...'
                 sh '''
-                    docker compose build --no-cache
-                    docker compose up -d
+                    sudo docker compose build --no-cache
+                    sudo docker compose up -d
                 '''
             }
         }
@@ -54,7 +54,7 @@ pipeline {
         stage('Verify Running Containers') {
             steps {
                 echo 'Verifying containers...'
-                sh 'docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
+                sh 'sudo docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
             }
         }
 
@@ -65,7 +65,7 @@ pipeline {
                     echo "Waiting for backend and frontend to respond..."
                     for i in {1..12}; do
                       if curl -s http://localhost:4000 >/dev/null 2>&1; then
-                        echo "✅ Backend is up on port 4000"
+                        echo "Backend is up on port 4000"
                         break
                       else
                         echo "Waiting for backend... ($i/12)"
@@ -75,7 +75,7 @@ pipeline {
 
                     for i in {1..12}; do
                       if curl -s http://localhost:8085 >/dev/null 2>&1; then
-                        echo "✅ Frontend is up on port 8085"
+                        echo "Frontend is up on port 8085"
                         break
                       else
                         echo "Waiting for frontend... ($i/12)"
@@ -89,10 +89,10 @@ pipeline {
 
     post {
         success {
-            echo '🎉 Jenkins CI/CD pipeline executed successfully! MERN app is live on EC2.'
+            echo ' Jenkins CI/CD pipeline executed successfully! MERN app is live on EC2.'
         }
         failure {
-            echo '❌ Jenkins build failed. Please check console logs for details.'
+            echo 'Jenkins build failed. Please check console logs for details.'
         }
     }
 }
