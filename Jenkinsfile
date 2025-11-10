@@ -1,5 +1,5 @@
 pipeline {
-    agent ubuntu3
+    agent { label 'ubuntu3' }  // ✅ use label of your Jenkins node or just "any"
 
     environment {
         COMPOSE_PROJECT_NAME = "mern_ci_app"
@@ -23,7 +23,7 @@ pipeline {
                         echo "Docker Compose v2 detected"
                     else
                         echo "Installing Docker Compose plugin..."
-                        apt-get update -y && apt-get install -y docker-compose-plugin
+                        sudo apt-get update -y && sudo apt-get install -y docker-compose-plugin
                     fi
                     docker compose version
                 '''
@@ -32,17 +32,11 @@ pipeline {
 
         stage('Clean Previous Containers') {
             steps {
-                echo 'Cleaning up old containers, networks, and volumes...'
+                echo 'Cleaning up old containers...'
                 sh '''
-                    echo "Removing any previously running containers..."
                     docker ps -aq --filter "name=mern-" | xargs -r docker rm -f || true
-
-                    echo "Bringing down previous docker-compose project..."
                     docker compose down --volumes --remove-orphans || true
-
-                    echo "Pruning unused images and volumes..."
                     docker system prune -af || true
-                    docker volume prune -f || true
                 '''
             }
         }
@@ -51,12 +45,7 @@ pipeline {
             steps {
                 echo 'Building and launching MERN containers...'
                 sh '''
-                    
-
-                    echo "Rebuilding Docker containers without cache..."
                     docker compose build --no-cache
-
-                    echo "Starting containers in detached mode..."
                     docker compose up -d
                 '''
             }
@@ -64,20 +53,19 @@ pipeline {
 
         stage('Verify Running Containers') {
             steps {
-                echo 'Verifying that both containers are up and running...'
+                echo 'Verifying containers...'
                 sh 'docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
             }
         }
 
         stage('Application Health Check') {
             steps {
-                echo 'Performing health checks on backend and frontend...'
+                echo 'Performing health checks...'
                 sh '''
-                    echo "Waiting up to 60 seconds for backend and frontend to respond..."
-
+                    echo "Waiting for backend and frontend to respond..."
                     for i in {1..12}; do
                       if curl -s http://localhost:4000 >/dev/null 2>&1; then
-                        echo "Backend is up on port 4000"
+                        echo "✅ Backend is up on port 4000"
                         break
                       else
                         echo "Waiting for backend... ($i/12)"
@@ -87,19 +75,13 @@ pipeline {
 
                     for i in {1..12}; do
                       if curl -s http://localhost:8085 >/dev/null 2>&1; then
-                        echo "Frontend is up on port 8085"
+                        echo "✅ Frontend is up on port 8085"
                         break
                       else
                         echo "Waiting for frontend... ($i/12)"
                         sleep 5
                       fi
                     done
-
-                    echo "Backend logs (last 15 lines):"
-                    docker logs mern-backend --tail 15 || true
-
-                    echo "Frontend logs (last 15 lines):"
-                    docker logs mern-frontend --tail 15 || true
                 '''
             }
         }
@@ -107,10 +89,10 @@ pipeline {
 
     post {
         success {
-            echo 'Jenkins CI/CD pipeline executed successfully! Your MERN application is live on EC2.'
+            echo '🎉 Jenkins CI/CD pipeline executed successfully! MERN app is live on EC2.'
         }
         failure {
-            echo 'Jenkins build failed. Please check the Jenkins console logs for details.'
+            echo '❌ Jenkins build failed. Please check console logs for details.'
         }
     }
 }
