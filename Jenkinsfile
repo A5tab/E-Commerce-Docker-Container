@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent ubuntu3
 
     environment {
         COMPOSE_PROJECT_NAME = "mern_ci_app"
