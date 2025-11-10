@@ -1,21 +1,19 @@
-services:
-  backend:
-    build: ./backend
-    container_name: mern-backend
-    ports:
-      - "3000:3000"
-    environment:
-      - PORT=3000
-      - CORS_ORIGIN=http://localhost:80
-
-      
-
-      - NODE_ENV=development
-    depends_on:
-      - frontend
-
-  frontend:
-    build: ./frontend
-    container_name: mern-frontend
-    ports:
-      - "80:80"
+version: "3.8" 
+• services: 
+•   backend: 
+•     build: ./backend 
+•     container_name: mern-backend 
+•     ports: 
+•       - "3000:3000" 
+•     env_file: 
+•       - .env 
+•     restart: always 
+•  
+•   frontend: 
+•     build: ./frontend 
+•     container_name: mern-frontend 
+•     ports: 
+•       - "80:80" 
+•     depends_on: 
+•       - backend 
+•  restart: always
