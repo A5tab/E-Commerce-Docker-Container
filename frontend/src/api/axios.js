@@ -1,5 +1,5 @@
 import axios from 'axios';
-const BASE_URL = 'http://localhost:3000/api/v1';  // for development
+const BASE_URL = 'http://13.233.79.2:3000/api/v1';  // for deployment on jenkins
 // const BASE_URL = 'https://mernecommercebackend-production.up.railway.app/api/v1'; // for production
 
 
