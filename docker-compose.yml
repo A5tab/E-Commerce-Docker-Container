@@ -1,21 +1,49 @@
+version: "3.8"
+
 services:
   backend:
-    build: ./backend
+    image: node:18
     container_name: mern-backend
+    working_dir: /app
+    volumes:
+      - ./backend:/app
     ports:
-      - "3000:3000"
+      - "4000:3000"  # Host 4000 → Container 3000
     environment:
       - PORT=3000
       - CORS_ORIGIN=http://localhost:80
-
-      
-
-      - NODE_ENV=development
-    depends_on:
-      - frontend
+      - MONGODB_URI=mongodb+srv://admin:1234@ecommerce.zqtpp.mongodb.net
+      - CLOUDINARY_CLOUD_NAME=du8yb6oog
+      - CLOUDINARY_API_KEY=229732255972711
+      - CLOUDINARY_API_SECRET=P6m2rezzIfOrd0bihGdlA1b8evw
+      - ACCESS_TOKEN_SECRET=4589865FDR98T5R6T565665@!@$4556578ERERasdd
+      - ACCESS_TOKEN_EXPIRY=35m
+      - REFRESH_TOKEN_SECRET=89E8RE56R5EREIROI859DFD56E5R65@!&%$65Eghg
+      - REFRESH_TOKEN_EXPIRY=7d
+      - PADDLE_VENDOR_ID=28406
+      - PADDLE_API_KEY=2bc0d31918106a01bf1cc783aae56cd0fd84c8354acd7c13bc
+      - PADDLE_CLIENT_KEY=test_c7dd607a04ea6498ad89712ffc6
+      - PADDLE_SANDBOX=true
+      - RTE_API_KEY=vdnw93ida3ayry2xqkhxcf45pesizfa5yl6qsd4gfk6o7233
+      - NODE_ENV=production
+    command: sh -c "npm install && npm start"
+    restart: always
 
   frontend:
-    build: ./frontend
+    image: node:18
     container_name: mern-frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
     ports:
-      - "80:80"
+      - "8085:5173"  # Host 8085 → Container 5173
+    environment:
+      - VITE_API=http://localhost:4000
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - backend
+    restart: always
+
+networks:
+  default:
+    driver: bridge
