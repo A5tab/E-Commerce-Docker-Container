@@ -72,7 +72,7 @@ const Header = () => {
                     <div className="text-2xl font-extrabold tracking-wide relative group">
                         <Link to="/" className="flex items-center">
                             <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-amber-500 group-hover:from-yellow-300 group-hover:to-amber-400 transition-all duration-300">
-                                Tech Hive
+                                Tech Hive Test
                             </span>
                         </Link>
                     </div>
