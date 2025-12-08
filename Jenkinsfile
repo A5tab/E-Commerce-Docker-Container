@@ -99,8 +99,7 @@
 // }
 
 pipeline {
-    agent { label 'ubuntu3' }
-
+    agent any
     environment {
         COMPOSE_PROJECT_NAME = "mern_ci_app"
     }
