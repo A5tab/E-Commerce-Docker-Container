@@ -115,12 +115,20 @@ pipeline {
                 echo 'Cloning MERN App repository...'
                 git branch: 'main',
                     url: 'https://github.com/A5tab/E-Commerce-Docker-Container.git'
+
+                // Save latest committer email
+                script {
+                    COMMIT_EMAIL = sh(
+                        script: "git log -1 --pretty=format:'%ae'",
+                        returnStdout: true
+                    ).trim()
+                    echo "Committer Email: ${COMMIT_EMAIL}"
+                }
             }
         }
 
-        /* ---------------------------
-           2. Setup Docker Environment
-        ---------------------------- */
+        // --- (All previous stages remain unchanged) ---
+
         stage('Set Up Docker Environment') {
             steps {
                 sh '''
@@ -135,9 +143,6 @@ pipeline {
             }
         }
 
-        /* ---------------------------
-           3. Clean Previous Containers
-        ---------------------------- */
         stage('Clean Previous Containers') {
             steps {
                 sh '''
@@ -148,9 +153,6 @@ pipeline {
             }
         }
 
-        /* ---------------------------
-           4. Build & Run Containers
-        ---------------------------- */
         stage('Build and Run Containers') {
             steps {
                 sh '''
@@ -160,9 +162,6 @@ pipeline {
             }
         }
 
-        /* ---------------------------
-           5. Health Check
-        ---------------------------- */
         stage('Application Health Check') {
             steps {
                 sh '''
@@ -190,11 +189,10 @@ pipeline {
         }
 
         /* ---------------------------
-           6. Checkout Test Repo
+           Checkout and run Mocha Tests
         ---------------------------- */
-        stage('Checkout Mocha Test Repo') {
+        stage('Checkout Test Repo') {
             steps {
-                echo 'Cloning Mocha Test Repo...'
                 dir('mocha-tests') {
                     git branch: 'main',
                         url: 'https://github.com/A5tab/MERN_Test.git'
@@ -202,45 +200,72 @@ pipeline {
             }
         }
 
-        /* ---------------------------
-           7. Install Dependencies & Run Tests
-        ---------------------------- */
         stage('Run Mocha Tests') {
             steps {
                 sh '''
                     cd mocha-tests
-
-                    echo "Installing test dependencies..."
                     npm install
-
-                    echo "Running Mocha tests..."
                     npx mocha tests --reporter mocha-junit-reporter --reporter-options mochaFile=results.xml
                 '''
             }
         }
 
-        /* ---------------------------
-           8. Archive Test Reports
-        ---------------------------- */
         stage('Archive Test Results') {
             steps {
                 junit 'mocha-tests/results.xml'
             }
         }
-    }
+
+    } // stages end
 
     /* ---------------------------
-       POST BUILD
+       POST BUILD EMAIL NOTIFICATION
     ---------------------------- */
     post {
         success {
-            echo '✔ SUCCESS: MERN App Deployed + Mocha Tests Passed'
+            script {
+                emailext(
+                    to: "${COMMIT_EMAIL}",
+                    subject: "✔ SUCCESS: Jenkins Build Passed for MERN App",
+                    body: """
+Hello,
+
+Your recent commit was successfully deployed!
+
+Project: MERN App  
+Status: SUCCESS  
+Build URL: ${env.BUILD_URL}
+
+Mocha tests passed and deployment is live on EC2.
+
+Regards,
+Jenkins CI/CD System
+"""
+                )
+            }
         }
+
         failure {
-            echo '✘ FAILURE: Something Failed — Check Jenkins Logs'
+            script {
+                emailext(
+                    to: "${COMMIT_EMAIL}",
+                    subject: "✘ FAILURE: Jenkins Build Failed for MERN App",
+                    body: """
+Hello,
+
+Your recent commit caused the Jenkins pipeline to FAIL.
+
+Project: MERN App  
+Status: FAILED  
+Build URL: ${env.BUILD_URL}
+
+Please check the Jenkins console logs and fix the errors.
+
+Regards,  
+Jenkins CI/CD System
+"""
+                )
+            }
         }
     }
 }
-
-
-
