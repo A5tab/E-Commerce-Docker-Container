@@ -28,6 +28,7 @@ pipeline {
 
                 script {
                     // IMPORTANT: Extract commit email for notifications
+                    // This variable now holds the email of the person who committed the code.
                     env.COMMIT_EMAIL = sh(
                         script: "git log -1 --pretty=format:'%ae'",
                         returnStdout: true
@@ -135,27 +136,29 @@ pipeline {
     } // end stages
 
     /* ============================
-   EMAIL NOTIFICATIONS (FINAL CORRECTED SYNTAX)
-=============================*/
-post {
-    always {
-        // 🎯 FIX: Wrap variable definition and complex logic in a 'script' block
-        script {
-            // Hardcode the recipient to ensure email delivery.
-            def recipient = 'muhammadaftab584@gmail.com' 
-            
-            emailext (
-                to: recipient, // Use the defined variable
-                subject: "${currentBuild.currentResult}: Jenkins MERN Pipeline Build #${env.BUILD_NUMBER}",
-                body: """
-                    Build Status: ${currentBuild.currentResult}
-                    Committer: ${env.COMMIT_EMAIL ?: 'qasimalik@gmail.com'}
-                    
-                    --- Test Case Summary ---
-                    Tests passed.
-                """
-            )
+       EMAIL NOTIFICATIONS (FINAL CORRECTED SYNTAX)
+    =============================*/
+    post {
+        always {
+            script {
+                // 🛑 CRITICAL CHANGE: Use the extracted committer email (env.COMMIT_EMAIL)
+                // If COMMIT_EMAIL is empty for some reason, it will fall back to a safe admin email.
+                def recipient = env.COMMIT_EMAIL ?: 'admin@yourdomain.com' 
+                
+                emailext (
+                    to: recipient, // Use the dynamically set variable
+                    subject: "${currentBuild.currentResult}: Jenkins MERN Pipeline Build #${env.BUILD_NUMBER}",
+                    body: """
+                        Build Status: ${currentBuild.currentResult}
+                        Committer: ${env.COMMIT_EMAIL}
+                        
+                        --- Test Case Summary ---
+                        Tests passed.
+                        
+                        View Build Details: ${env.BUILD_URL}
+                    """
+                )
+            }
         }
     }
-}
 }
