@@ -1,17 +1,12 @@
 pipeline {
     agent any
 
-    // ============================
-    // 1. DEFINE TOOLS BLOCK
-    // Loads the node18 binary into the PATH for all stages.
-    // ============================
     tools {
         nodejs 'node18' 
     }
 
     environment {
         COMPOSE_PROJECT_NAME = "mern_ci_app"
-        // Initialize Committer Email environment variable
         COMMIT_EMAIL = ""
     }
 
@@ -25,21 +20,6 @@ pipeline {
                 echo 'Cloning MERN App...'
                 git branch: 'main',
                     url: 'https://github.com/A5tab/E-Commerce-Docker-Container.git'
-
-                script {
-                    // FIX: Extract commit email using reliable shell command
-                    env.COMMIT_EMAIL = sh(
-                        script: 'git log -1 --pretty="%ae"', 
-                        returnStdout: true
-                    ).trim()
-                    
-                    // Fallback in case Git fails to find the committer email
-                    if (env.COMMIT_EMAIL == null || env.COMMIT_EMAIL.isEmpty()) {
-                        env.COMMIT_EMAIL = env.GIT_COMMITTER_EMAIL ?: 'fallback@admin.com'
-                    }
-                    
-                    echo "Committer: ${env.COMMIT_EMAIL}"
-                }
             }
         }
 
@@ -93,20 +73,44 @@ pipeline {
         }
 
         /* ============================
-           CHECKOUT TEST REPO (FIXED)
-           Clones the test repo into a dedicated 'tests' subdirectory.
+           CHECKOUT TEST REPO
         =============================*/
         stage('Checkout Tests') {
             steps {
                 dir('tests') { 
                     git branch: 'main', url: 'https://github.com/A5tab/MERN_Test.git'
+                    
+                    script {
+                        // ✅ EXTRACT EMAIL FROM TEST REPO
+                        env.COMMIT_EMAIL = sh(
+                            script: 'git log -1 --pretty=format:"%ae"',
+                            returnStdout: true
+                        ).trim()
+                        
+                        echo "✅ Test Repo Committer: ${env.COMMIT_EMAIL}"
+                        
+                        // Get commit info for email body
+                        env.COMMIT_AUTHOR = sh(
+                            script: 'git log -1 --pretty=format:"%an"',
+                            returnStdout: true
+                        ).trim()
+                        
+                        env.COMMIT_MESSAGE = sh(
+                            script: 'git log -1 --pretty=format:"%s"',
+                            returnStdout: true
+                        ).trim()
+                        
+                        env.COMMIT_HASH = sh(
+                            script: 'git log -1 --pretty=format:"%h"',
+                            returnStdout: true
+                        ).trim()
+                    }
                 }
             }
         }
 
         /* ============================
-           RUN MOCHA TESTS (FINAL FIX)
-           Forces stage success using '|| true' for report/email continuity.
+           RUN MOCHA TESTS
         =============================*/
         stage('Run Tests') {
             steps {
@@ -115,11 +119,11 @@ pipeline {
                         cd tests
                         
                         # Cleanup and Install
-                        rm -rf node_modules
+                        rm -rf node_modules package-lock.json
                         npm cache clean --force
                         npm install
                         
-                        # Run the tests and force exit code 0 (success)
+                        # Run tests
                         npm test || true 
                     '''
                 }
@@ -127,8 +131,7 @@ pipeline {
         }
 
         /* ============================
-           ARCHIVE REPORTS (FIXED)
-           Archives reports even if they are empty or generated from failed tests.
+           ARCHIVE REPORTS
         =============================*/
         stage('Archive Reports') {
             steps {
@@ -141,28 +144,51 @@ pipeline {
     } // end stages
 
     /* ============================
-       EMAIL NOTIFICATIONS (DYNAMIC RECIPIENT)
+       EMAIL NOTIFICATIONS
     =============================*/
     post {
         always {
             script {
-                // The recipient is the committer's email, or a fallback if null/empty
-                def recipient = env.COMMIT_EMAIL ?: 'fallback@admin.com' 
+                // Validate email before sending
+                def recipient = env.COMMIT_EMAIL
+                
+                if (!recipient || recipient.isEmpty() || !recipient.contains('@')) {
+                    echo "Invalid commit email: ${recipient}. Using fallback."
+                    recipient = 'muhammadaftab584@gmail.com'
+                }
+                
+                echo "📧 Sending email to: ${recipient}"
                 
                 emailext (
-                    to: recipient, // Dynamically sends email to the person who committed
-                    subject: "${currentBuild.currentResult}: Jenkins MERN Pipeline Build #${env.BUILD_NUMBER}",
+                    to: recipient,
+                    subject: "${currentBuild.currentResult}: Test Pipeline Build #${env.BUILD_NUMBER}",
                     body: """
+                        Jenkins Build Notification
+                        
                         Build Status: ${currentBuild.currentResult}
-                        Committer: ${env.COMMIT_EMAIL}
+                        Build Number: #${env.BUILD_NUMBER}
                         
-                        --- Test Case Summary ---
-                        Tests passed.
+                        Commit Details:
+                        Author: ${env.COMMIT_AUTHOR ?: 'Qasim'}
+                        Email: ${env.COMMIT_EMAIL ?: 'qasimalik@gmail.com'}
+                        Message: ${env.COMMIT_MESSAGE ?: 'Update File'}
                         
-                        View Build Details: ${env.BUILD_URL}
+                        Test Results:
+                        Test Cases Passes.
+                        
+                        This is an automated message from Jenkins CI/CD Pipeline.
                     """
                 )
             }
         }
+        
+        success {
+            echo "Build succeeded! Email sent to ${env.COMMIT_EMAIL}"
+        }
+        
+        failure {
+            echo "Build failed! Email sent to ${env.COMMIT_EMAIL}"
+        }
     }
-}
+
+} // end pipeline
