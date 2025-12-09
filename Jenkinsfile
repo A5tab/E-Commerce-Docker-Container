@@ -135,16 +135,17 @@ pipeline {
     } // end stages
 
     /* ============================
-       EMAIL NOTIFICATIONS (FINAL FIX)
-       Hardcoded recipient guarantees delivery for evaluation.
-    =============================*/
-    post {
-        always {
-            // 🎯 FINAL FIX: Hardcode the recipient to ensure email delivery.
+   EMAIL NOTIFICATIONS (FINAL CORRECTED SYNTAX)
+=============================*/
+post {
+    always {
+        // 🎯 FIX: Wrap variable definition and complex logic in a 'script' block
+        script {
+            // Hardcode the recipient to ensure email delivery.
             def recipient = 'muhammadaftab584@gmail.com' 
             
             emailext (
-                to: recipient,
+                to: recipient, // Use the defined variable
                 subject: "${currentBuild.currentResult}: Jenkins MERN Pipeline Build #${env.BUILD_NUMBER}",
                 body: """
                     Build Status: ${currentBuild.currentResult}
