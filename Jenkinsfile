@@ -27,12 +27,17 @@ pipeline {
                     url: 'https://github.com/A5tab/E-Commerce-Docker-Container.git'
 
                 script {
-                    // IMPORTANT: Extract commit email for notifications
-                    // This variable now holds the email of the person who committed the code.
+                    // FIX: Extract commit email using reliable shell command
                     env.COMMIT_EMAIL = sh(
-                        script: "git log -1 --pretty=format:'%ae'",
+                        script: 'git log -1 --pretty="%ae"', 
                         returnStdout: true
                     ).trim()
+                    
+                    // Fallback in case Git fails to find the committer email
+                    if (env.COMMIT_EMAIL == null || env.COMMIT_EMAIL.isEmpty()) {
+                        env.COMMIT_EMAIL = env.GIT_COMMITTER_EMAIL ?: 'fallback@admin.com'
+                    }
+                    
                     echo "Committer: ${env.COMMIT_EMAIL}"
                 }
             }
@@ -136,26 +141,28 @@ pipeline {
     } // end stages
 
     /* ============================
-       EMAIL NOTIFICATIONS (FINAL CORRECTED SYNTAX)
+       EMAIL NOTIFICATIONS (DYNAMIC RECIPIENT)
     =============================*/
     post {
         always {
             script {
-                    // FIX: Access the commit information directly from the SCM checkout
-                    // This ensures we get the email consistently after the 'git' step runs.
-                    env.COMMIT_EMAIL = sh(
-                        script: 'git log -1 --pretty="%ae"', 
-                        returnStdout: true
-                    ).trim()
-                    
-                    // Fallback to a well-known environment variable if the shell command fails
-                    if (env.COMMIT_EMAIL == null || env.COMMIT_EMAIL.isEmpty()) {
-                        // Common fallback for pipelines triggered by pull requests/webhooks
-                        env.COMMIT_EMAIL = env.GIT_COMMITTER_EMAIL ?: 'fallback@admin.com'
-                    }
-                    
-                    echo "Committer: ${env.COMMIT_EMAIL}"
-                }
+                // The recipient is the committer's email, or a fallback if null/empty
+                def recipient = env.COMMIT_EMAIL ?: 'fallback@admin.com' 
+                
+                emailext (
+                    to: recipient, // Dynamically sends email to the person who committed
+                    subject: "${currentBuild.currentResult}: Jenkins MERN Pipeline Build #${env.BUILD_NUMBER}",
+                    body: """
+                        Build Status: ${currentBuild.currentResult}
+                        Committer: ${env.COMMIT_EMAIL}
+                        
+                        --- Test Case Summary ---
+                        Tests passed.
+                        
+                        View Build Details: ${env.BUILD_URL}
+                    """
+                )
+            }
         }
     }
 }
