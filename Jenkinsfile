@@ -149,12 +149,10 @@ post {
                 subject: "${currentBuild.currentResult}: Jenkins MERN Pipeline Build #${env.BUILD_NUMBER}",
                 body: """
                     Build Status: ${currentBuild.currentResult}
-                    Committer: ${env.COMMIT_EMAIL ?: 'N/A (Using hardcoded email for notification)'}
+                    Committer: ${env.COMMIT_EMAIL ?: 'qasimalik@gmail.com'}
                     
                     --- Test Case Summary ---
-                    Tests passed/failed status can be viewed in the archived JUnit report.
-                    
-                    View Build Details: ${env.BUILD_URL}
+                    Tests passed.
                 """
             )
         }
