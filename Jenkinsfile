@@ -15,27 +15,53 @@ pipeline {
             steps {
                 echo 'Cloning MERN App...'
                 
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    extensions: [
+                        [$class: 'CloneOption', depth: 0, noTags: false, shallow: false]
+                    ],
+                    userRemoteConfigs: [[url: 'https://github.com/A5tab/E-Commerce-Docker-Container.git']]
+                ])
+                
                 script {
-                    // Use checkout with returnGitInfo
-                    def gitInfo = checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: '*/main']],
-                        userRemoteConfigs: [[url: 'https://github.com/A5tab/E-Commerce-Docker-Container.git']]
-                    ])
+                    // Force fetch full commit info
+                    sh 'git fetch --unshallow || true'
                     
-                    // Debug: Print all available Git variables
-                    echo "GIT_COMMIT: ${gitInfo.GIT_COMMIT}"
-                    echo "GIT_AUTHOR_EMAIL: ${gitInfo.GIT_AUTHOR_EMAIL}"
-                    echo "GIT_AUTHOR_NAME: ${gitInfo.GIT_AUTHOR_NAME}"
-                    echo "GIT_COMMITTER_EMAIL: ${gitInfo.GIT_COMMITTER_EMAIL}"
-                    echo "GIT_COMMITTER_NAME: ${gitInfo.GIT_COMMITTER_NAME}"
+                    // Extract commit details with error handling
+                    env.COMMIT_HASH = sh(
+                        script: 'git rev-parse HEAD',
+                        returnStdout: true
+                    ).trim()
                     
-                    // Store in environment variables
-                    env.COMMIT_EMAIL = gitInfo.GIT_AUTHOR_EMAIL ?: gitInfo.GIT_COMMITTER_EMAIL
-                    env.COMMIT_AUTHOR = gitInfo.GIT_AUTHOR_NAME ?: gitInfo.GIT_COMMITTER_NAME
-                    env.COMMIT_HASH = gitInfo.GIT_COMMIT
+                    env.COMMIT_EMAIL = sh(
+                        script: 'git show -s --format="%ae" HEAD',
+                        returnStdout: true
+                    ).trim()
                     
-                    echo "Final - Committer: ${env.COMMIT_AUTHOR} <${env.COMMIT_EMAIL}>"
+                    env.COMMIT_AUTHOR = sh(
+                        script: 'git show -s --format="%an" HEAD',
+                        returnStdout: true
+                    ).trim()
+                    
+                    env.COMMIT_MESSAGE = sh(
+                        script: 'git show -s --format="%s" HEAD',
+                        returnStdout: true
+                    ).trim()
+                    
+                    // Debug output
+                    echo "======================================="
+                    echo "Commit Hash: ${env.COMMIT_HASH}"
+                    echo "Commit Author: ${env.COMMIT_AUTHOR}"
+                    echo "Commit Email: ${env.COMMIT_EMAIL}"
+                    echo "Commit Message: ${env.COMMIT_MESSAGE}"
+                    echo "======================================="
+                    
+                    // Validate
+                    if (!env.COMMIT_EMAIL || env.COMMIT_EMAIL == 'null' || !env.COMMIT_EMAIL.contains('@')) {
+                        echo "WARNING: Could not extract valid email!"
+                        sh 'git log -1 --pretty=fuller'
+                    }
                 }
             }
         }
@@ -115,14 +141,20 @@ pipeline {
     post {
         always {
             script {
-                def recipient = env.COMMIT_EMAIL
+                // Get values with proper null checking
+                def commitEmail = env.COMMIT_EMAIL ?: ''
+                def commitAuthor = env.COMMIT_AUTHOR ?: 'Unknown'
+                def commitHash = env.COMMIT_HASH ?: 'Unknown'
+                def commitMessage = env.COMMIT_MESSAGE ?: 'No message'
                 
-                if (!recipient || !recipient.contains('@')) {
-                    echo "Warning: No valid email found. Using fallback."
-                    recipient = 'muhammadaftab584@gmail.com'
+                // Validate email
+                def recipient = 'muhammadaftab584@gmail.com'
+                if (commitEmail && commitEmail != 'null' && commitEmail.contains('@')) {
+                    recipient = commitEmail
+                    echo "Sending to committer: ${recipient}"
+                } else {
+                    echo "No valid committer email found. Using fallback: ${recipient}"
                 }
-                
-                echo "Sending email to: ${recipient}"
                 
                 emailext (
                     to: recipient,
@@ -130,9 +162,12 @@ pipeline {
                     body: """
 Build Status: ${currentBuild.currentResult}
 Build Number: ${env.BUILD_NUMBER}
-Committer: ${env.COMMIT_AUTHOR ?: 'Unknown'}
-Email: ${env.COMMIT_EMAIL ?: 'Unknown'}
-Commit: ${env.COMMIT_HASH ?: 'Unknown'}
+
+Commit Details:
+Author: ${commitAuthor}
+Email: ${commitEmail ?: 'Not available'}
+Hash: ${commitHash}
+Message: ${commitMessage}
 
 View Details: ${env.BUILD_URL}
                     """
