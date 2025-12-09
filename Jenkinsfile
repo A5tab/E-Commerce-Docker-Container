@@ -107,11 +107,14 @@ pipeline {
         nodejs('node18') {
             sh '''
                 cd tests
-                npm install 
                 
-                # 🎯 FIX: Manually grant execute permission to the mocha binary
-                chmod +x node_modules/.bin/mocha
+                # 🎯 FIX: CLEANUP BEFORE INSTALL
+                # 1. Remove the node_modules folder entirely
+                rm -rf node_modules
+                # 2. Clear the npm cache (good practice for corrupted installs)
+                npm cache clean --force
                 
+                npm install
                 npm test
             '''
         }
