@@ -141,7 +141,7 @@ pipeline {
     post {
         always {
             // 🎯 FINAL FIX: Hardcode the recipient to ensure email delivery.
-            def recipient = 'xyz@gmail.com' 
+            def recipient = 'muhammadaftab584@gmail.com' 
             
             emailext (
                 to: recipient,
