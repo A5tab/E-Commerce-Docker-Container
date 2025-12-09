@@ -93,11 +93,18 @@ pipeline {
         /* ============================
            CHECKOUT TEST REPO
         =============================*/
-        stage('Checkout Tests') {
-            steps {
-                    git branch: 'main', url: 'https://github.com/A5tab/MERN_Test.git'
-            }
+        /* ============================
+   CHECKOUT TEST REPO
+=============================*/
+stage('Checkout Tests') {
+    steps {
+        // 🎯 FIX: ADD THE 'dir' WRAPPER
+        dir('tests') { 
+            // This checks out MERN_Test into /workspace/job-name/tests/
+            git branch: 'main', url: 'https://github.com/A5tab/MERN_Test.git'
         }
+    }
+}
 
      stage('Run Tests') {
     steps {
