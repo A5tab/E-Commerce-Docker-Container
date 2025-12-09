@@ -7,8 +7,6 @@ pipeline {
 
     environment {
         COMPOSE_PROJECT_NAME = "mern_ci_app"
-        COMMIT_EMAIL = ""
-        COMMIT_AUTHOR = ""
     }
 
     stages {
@@ -16,22 +14,28 @@ pipeline {
         stage('Checkout MERN App') {
             steps {
                 echo 'Cloning MERN App...'
-                git branch: 'main',
-                    url: 'https://github.com/A5tab/E-Commerce-Docker-Container.git'
                 
                 script {
-                    // Extract email from main repository
-                    env.COMMIT_EMAIL = sh(
-                        script: 'git log -1 --pretty=format:"%ae"',
-                        returnStdout: true
-                    ).trim()
+                    // Use checkout with returnGitInfo
+                    def gitInfo = checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        userRemoteConfigs: [[url: 'https://github.com/A5tab/E-Commerce-Docker-Container.git']]
+                    ])
                     
-                    env.COMMIT_AUTHOR = sh(
-                        script: 'git log -1 --pretty=format:"%an"',
-                        returnStdout: true
-                    ).trim()
+                    // Debug: Print all available Git variables
+                    echo "GIT_COMMIT: ${gitInfo.GIT_COMMIT}"
+                    echo "GIT_AUTHOR_EMAIL: ${gitInfo.GIT_AUTHOR_EMAIL}"
+                    echo "GIT_AUTHOR_NAME: ${gitInfo.GIT_AUTHOR_NAME}"
+                    echo "GIT_COMMITTER_EMAIL: ${gitInfo.GIT_COMMITTER_EMAIL}"
+                    echo "GIT_COMMITTER_NAME: ${gitInfo.GIT_COMMITTER_NAME}"
                     
-                    echo "Committer: ${env.COMMIT_AUTHOR} <${env.COMMIT_EMAIL}>"
+                    // Store in environment variables
+                    env.COMMIT_EMAIL = gitInfo.GIT_AUTHOR_EMAIL ?: gitInfo.GIT_COMMITTER_EMAIL
+                    env.COMMIT_AUTHOR = gitInfo.GIT_AUTHOR_NAME ?: gitInfo.GIT_COMMITTER_NAME
+                    env.COMMIT_HASH = gitInfo.GIT_COMMIT
+                    
+                    echo "Final - Committer: ${env.COMMIT_AUTHOR} <${env.COMMIT_EMAIL}>"
                 }
             }
         }
@@ -114,8 +118,11 @@ pipeline {
                 def recipient = env.COMMIT_EMAIL
                 
                 if (!recipient || !recipient.contains('@')) {
+                    echo "Warning: No valid email found. Using fallback."
                     recipient = 'muhammadaftab584@gmail.com'
                 }
+                
+                echo "Sending email to: ${recipient}"
                 
                 emailext (
                     to: recipient,
@@ -123,7 +130,9 @@ pipeline {
                     body: """
 Build Status: ${currentBuild.currentResult}
 Build Number: ${env.BUILD_NUMBER}
-Committer: ${env.COMMIT_AUTHOR}
+Committer: ${env.COMMIT_AUTHOR ?: 'Unknown'}
+Email: ${env.COMMIT_EMAIL ?: 'Unknown'}
+Commit: ${env.COMMIT_HASH ?: 'Unknown'}
 
 View Details: ${env.BUILD_URL}
                     """
