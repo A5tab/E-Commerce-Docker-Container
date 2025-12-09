@@ -12,7 +12,7 @@ function Layout() {
         <div className="relative flex transition-all duration-300">
             {/* Main Content */}
             <main
-                className={`flex-1 transition-all duration-300 ${cartTabClicked ? "mr-80" : "mr-0"
+                className={`flex-1 transition-all duration-400 ${cartTabClicked ? "mr-80" : "mr-0"
                     }`}
             >
                 {
