@@ -169,7 +169,7 @@ Email: ${commitEmail ?: 'Not available'}
 Hash: ${commitHash}
 Message: ${commitMessage}
 
-View Details: ${env.BUILD_URL}
+
                     """
                 )
             }
