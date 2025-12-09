@@ -95,10 +95,7 @@ pipeline {
         =============================*/
         stage('Checkout Tests') {
             steps {
-                dir('tests') {
-                    // This is for your separate test repository
                     git branch: 'main', url: 'https://github.com/A5tab/MERN_Test.git'
-                }
             }
         }
 
