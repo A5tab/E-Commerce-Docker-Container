@@ -98,27 +98,28 @@ pipeline {
 =============================*/
 stage('Checkout Tests') {
     steps {
-        // 🎯 FIX: ADD THE 'dir' WRAPPER
         dir('tests') { 
-            // This checks out MERN_Test into /workspace/job-name/tests/
+            // This creates the /workspace/test-pipeline1/tests/ directory
+            // and clones MERN_Test inside it.
             git branch: 'main', url: 'https://github.com/A5tab/MERN_Test.git'
         }
     }
 }
 
-     stage('Run Tests') {
+    stage('Run Tests') {
     steps {
         nodejs('node18') {
             sh '''
-                cd tests
+                # 🎯 FIX: CD INTO THE REPO ROOT WHERE 'drivers.js' is located
+                cd tests 
                 
-                # 🎯 FIX: CLEANUP BEFORE INSTALL
-                # 1. Remove the node_modules folder entirely
+                # Cleanup and Install
                 rm -rf node_modules
-                # 2. Clear the npm cache (good practice for corrupted installs)
                 npm cache clean --force
-                
                 npm install
+                
+                # Now run the tests from the root of the MERN_Test repo
+                # The 'mocha tests' command will find the nested test files.
                 npm test
             '''
         }
