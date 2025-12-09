@@ -107,17 +107,20 @@ pipeline {
            2. WRAP npm COMMANDS IN nodejs() BLOCK
         =============================*/
         stage('Run Tests') {
-            steps {
-                // Use the nodejs wrapper to put 'npm' into the PATH
-                nodejs('node18') {
-                    sh '''
-                        cd tests
-                        npm install
-                        npx mocha tests --reporter mocha-junit-reporter --reporter-options mochaFile=results.xml
-                    '''
-                }
-            }
+    steps {
+        nodejs('node18') {
+            sh '''
+                cd tests
+                npm install
+                
+                # 🎯 ADD THIS LINE TO FIX THE PERMISSION ERROR
+                chmod +x node_modules/.bin/mocha
+                
+                npx mocha tests --reporter mocha-junit-reporter --reporter-options mochaFile=results.xml
+            '''
         }
+    }
+}
 
         stage('Archive Reports') {
             steps {
