@@ -141,24 +141,21 @@ pipeline {
     post {
         always {
             script {
-                // 🛑 CRITICAL CHANGE: Use the extracted committer email (env.COMMIT_EMAIL)
-                // If COMMIT_EMAIL is empty for some reason, it will fall back to a safe admin email.
-                def recipient = env.COMMIT_EMAIL ?: 'admin@yourdomain.com' 
-                
-                emailext (
-                    to: recipient, // Use the dynamically set variable
-                    subject: "${currentBuild.currentResult}: Jenkins MERN Pipeline Build #${env.BUILD_NUMBER}",
-                    body: """
-                        Build Status: ${currentBuild.currentResult}
-                        Committer: ${env.COMMIT_EMAIL}
-                        
-                        --- Test Case Summary ---
-                        Tests passed.
-                        
-                        View Build Details: ${env.BUILD_URL}
-                    """
-                )
-            }
+                    // FIX: Access the commit information directly from the SCM checkout
+                    // This ensures we get the email consistently after the 'git' step runs.
+                    env.COMMIT_EMAIL = sh(
+                        script: 'git log -1 --pretty="%ae"', 
+                        returnStdout: true
+                    ).trim()
+                    
+                    // Fallback to a well-known environment variable if the shell command fails
+                    if (env.COMMIT_EMAIL == null || env.COMMIT_EMAIL.isEmpty()) {
+                        // Common fallback for pipelines triggered by pull requests/webhooks
+                        env.COMMIT_EMAIL = env.GIT_COMMITTER_EMAIL ?: 'fallback@admin.com'
+                    }
+                    
+                    echo "Committer: ${env.COMMIT_EMAIL}"
+                }
         }
     }
 }
