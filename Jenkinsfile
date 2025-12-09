@@ -103,20 +103,18 @@ pipeline {
         }
 
         /* ============================
-           RUN MOCHA TESTS
-           2. WRAP npm COMMANDS IN nodejs() BLOCK
-        =============================*/
-        stage('Run Tests') {
+   RUN MOCHA TESTS
+   (FIXED to use npm test script)
+=============================*/
+stage('Run Tests') {
     steps {
         nodejs('node18') {
             sh '''
                 cd tests
-                npm install
+                npm install 
                 
-                # 🎯 ADD THIS LINE TO FIX THE PERMISSION ERROR
-                chmod +x node_modules/.bin/mocha
-                
-                npx mocha tests --reporter mocha-junit-reporter --reporter-options mochaFile=results.xml
+                # 🎯 FIX: This uses the 'test' script defined in package.json
+                npm test
             '''
         }
     }
