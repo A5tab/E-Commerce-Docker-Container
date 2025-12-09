@@ -102,18 +102,16 @@ pipeline {
             }
         }
 
-        /* ============================
-   RUN MOCHA TESTS
-   (FIXED to use npm test script)
-=============================*/
-stage('Run Tests') {
+     stage('Run Tests') {
     steps {
         nodejs('node18') {
             sh '''
                 cd tests
                 npm install 
                 
-                # 🎯 FIX: This uses the 'test' script defined in package.json
+                # 🎯 FIX: Manually grant execute permission to the mocha binary
+                chmod +x node_modules/.bin/mocha
+                
                 npm test
             '''
         }
